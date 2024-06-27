@@ -2,7 +2,7 @@ name: Style
 
 on:
   pull_request:
-    branches: [ release ]
+    branches: [ main ]
 
 jobs:
   check:
