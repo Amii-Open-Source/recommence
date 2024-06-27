@@ -13,7 +13,7 @@ class Checkpoint:
 
     def __getitem__(self, name: str) -> Any:
         return self._data[name]
-    
+
     def __setitem__(self, name: str, value: Callable[[], Any]) -> Any:
         self._data[name] = value()
         return value
@@ -29,7 +29,7 @@ class Checkpoint:
         if os.path.exists(self.save_path):
             shutil.rmtree(self.save_path)
         return
-    
+
     def _load_if_exists(self) -> None:
         if os.path.exists(self.save_path):
             if os.path.exists(self._data_path):

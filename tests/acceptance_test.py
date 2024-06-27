@@ -29,5 +29,5 @@ def test_checkpoint1(tmp_path):
     chk.remove()
 
 
-if __name__ == '__main__':
-    test_checkpoint1(tmp_path='tmp_path')
+
+
