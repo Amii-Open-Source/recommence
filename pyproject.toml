@@ -23,7 +23,9 @@ description = ""
 authors = [
     {name = "Andy Patterson", email = "andrew.patterson@amii.ca"},
 ]
-dependencies = []
+dependencies = [
+    "numpy>=1.20,<=2.1",
+]
 requires-python = ">=3.10,<3.13"
 readme = "README.md"
 license = {text = "MIT"}
