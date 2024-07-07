@@ -1,5 +1,5 @@
 import numpy as np
-from recommence.Checkpoint import Checkpoint
+from recommence.Checkpoint import Checkpoint, CheckpointConfig
 
 
 class Agent:
@@ -8,7 +8,10 @@ class Agent:
         self.steps = 1
 
 def test_checkpoint_register(tmp_path):
-    chk = Checkpoint(save_path=str(tmp_path))
+    config = CheckpointConfig(
+        save_path=str(tmp_path),
+    )
+    chk = Checkpoint(config)
 
     registered_agent = chk.register('agent', lambda: Agent())
 
@@ -18,7 +21,7 @@ def test_checkpoint_register(tmp_path):
     chk.save()
     del chk
 
-    chk = Checkpoint(save_path=str(tmp_path))
+    chk = Checkpoint(config)
 
     loaded_agent = chk['agent']
 

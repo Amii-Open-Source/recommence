@@ -4,17 +4,17 @@ import pickle
 import logging
 from typing import Any, Dict, Callable, TypeVar
 
+from recommence.Config import CheckpointConfig
+
 T = TypeVar('T')
 
 logger = logging.getLogger('recommence')
 
 class Checkpoint:
-    def __init__(self, save_path: str, no_fail: bool = False) -> None:
-        self.save_path: str = save_path
-        self._data_path: str = f'{save_path}/data.pkl'
+    def __init__(self, config: CheckpointConfig):
+        self._c = config
         self._data: Dict[str, Any] = {}
 
-        self.no_fail: bool = no_fail  # If true, do not fail if there are issues
         self._load_if_exists()
 
     def __getitem__(self, name: str) -> Any:
@@ -32,39 +32,42 @@ class Checkpoint:
         return self._data[name]
 
     def save(self) -> None:
-        if not os.path.exists(self.save_path):
-            os.makedirs(self.save_path)
+        os.makedirs(self._c.save_path, exist_ok=True)
+
+        data_path = f'{self._c.save_path}/{self._c.data_file}'
         try:
-            with open(self._data_path, 'wb') as f:
+            with open(data_path, 'wb') as f:
                 pickle.dump(self._data, f)
+
         except Exception as e:
-            if not self.no_fail:
+            if not self._c.no_fail:
                 raise Exception("Could not save the checkpoint") from e
 
-        logger.info(f'Saving checkpoint at: {self.save_path}')
+        logger.info(f'Saving checkpoint at: {data_path}')
 
     def remove(self) -> None:
-        if os.path.exists(self.save_path):
-            shutil.rmtree(self.save_path)
+        target_path = self._c.save_path
+        if os.path.exists(target_path):
+            shutil.rmtree(target_path)
 
-        logger.info(f'Removing checkpoint at: {self.save_path}')
+        logger.info(f'Removing checkpoint at: {target_path}')
+
 
     def _load_if_exists(self) -> None:
-        if os.path.exists(self.save_path):
-            logger.debug(f'Checkpoint directory found at: {self.save_path}')
+        os.makedirs(self._c.save_path, exist_ok=True)
+        data_path = f'{self._c.save_path}/{self._c.data_file}'
+        try:
+            if os.path.exists(data_path):
+                logger.debug(f'Checkpoint data-file found at: {data_path}')
 
-            try:
-                if os.path.exists(self._data_path):
-                    logger.debug(f'Checkpoint data-file found at: {self._data_path}')
+                try:
+                    with open(data_path, 'rb') as f:
+                        self._data = pickle.load(f)
+                except Exception as e:
+                    if not self._c.no_fail:
+                        raise Exception("Could not load the checkpoint") from e
+        except Exception as e:
+            if not self._c.no_fail:
+                raise Exception(f"Could not find the file at the path: {data_path}") from e
 
-                    try:
-                        with open(self._data_path, 'rb') as f:
-                            self._data = pickle.load(f)
-                    except Exception as e:
-                        if not self.no_fail:
-                            raise Exception("Could not load the checkpoint") from e
-            except Exception as e:
-                if not self.no_fail:
-                    raise Exception(f"Could not find the file at the path: {self._data_path}") from e
-
-        logger.info(f'Loading from checkpoint at: {self.save_path}')
+        logger.info(f'Loading from checkpoint at: {self._c.save_path}')

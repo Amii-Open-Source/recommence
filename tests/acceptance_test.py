@@ -1,5 +1,5 @@
 import numpy as np
-from recommence.Checkpoint import Checkpoint
+from recommence.Checkpoint import Checkpoint, CheckpointConfig
 
 class FakeAgent:
     def __init__(self):
@@ -7,7 +7,10 @@ class FakeAgent:
         self.steps = 1
 
 def test_checkpoint1(tmp_path):
-    chk = Checkpoint(save_path=str(tmp_path))
+    config = CheckpointConfig(
+        save_path=str(tmp_path),
+    )
+    chk = Checkpoint(config)
 
     chk['agent'] = lambda: FakeAgent()
     original_agent = chk['agent']
@@ -18,7 +21,7 @@ def test_checkpoint1(tmp_path):
     chk.save()
     del chk
 
-    chk = Checkpoint(save_path=str(tmp_path))
+    chk = Checkpoint(config)
 
     loaded_agent = chk['agent']
 
@@ -27,7 +30,3 @@ def test_checkpoint1(tmp_path):
     assert original_agent.steps == loaded_agent.steps
 
     chk.remove()
-
-
-
-

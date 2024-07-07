@@ -1,4 +1,4 @@
-from recommence.Checkpoint import Checkpoint
+from recommence.Checkpoint import Checkpoint, CheckpointConfig
 from tests._utils.TileCodingAgent import TileCodingAgent
 from RlGlue import RlGlue, BaseEnvironment
 import gymnasium
@@ -40,7 +40,10 @@ class CartpoleEnvironment(BaseEnvironment):
 
 
 def run_rl_system(seed: int, should_chk: bool, tmp_path) -> Tuple[np.ndarray, ReturnCollector]:
-    chk = Checkpoint(str(tmp_path)) if should_chk else FakeCheckpoint()
+    config = CheckpointConfig(
+        save_path=str(tmp_path),
+    )
+    chk = Checkpoint(config) if should_chk else FakeCheckpoint()
 
     agent = chk.register('agent', lambda: TileCodingAgent())
     env = chk.register("env", lambda: CartpoleEnvironment(seed=42))
@@ -65,7 +68,7 @@ def run_rl_system(seed: int, should_chk: bool, tmp_path) -> Tuple[np.ndarray, Re
             chk.save()
             del chk
 
-            chk = Checkpoint(tmp_path)
+            chk = Checkpoint(config)
             agent = chk['agent']
             env = chk['env']
             glue = chk['glue']
@@ -85,6 +88,3 @@ def test_RL_integration(tmp_path):
 
   assert np.all(no_chk_result[0] == chk_result[0])
   assert np.all(no_chk_result[1].get() == chk_result[1].get())
-
-
-
