@@ -5,6 +5,8 @@ import logging
 from typing import Any, Dict, Callable, TypeVar
 
 from recommence.Config import CheckpointConfig
+from recommence._utils.compress import compress_dir, uncompress_dir
+from recommence._utils.pickle import read_pickle
 
 T = TypeVar('T')
 
@@ -15,7 +17,9 @@ class Checkpoint:
         self._c = config
         self._data: Dict[str, Any] = {}
 
-        self._load_if_exists()
+        data = self._load_if_exists()
+        if data is not None:
+            self._data = data
 
     def __getitem__(self, name: str) -> Any:
         return self._data[name]
@@ -32,9 +36,9 @@ class Checkpoint:
         return self._data[name]
 
     def save(self) -> None:
-        os.makedirs(self._c.save_path, exist_ok=True)
+        os.makedirs(self._c.get_staging_path(), exist_ok=True)
 
-        data_path = f'{self._c.save_path}/{self._c.data_file}'
+        data_path = self._c.get_staging_data_path()
         try:
             with open(data_path, 'wb') as f:
                 pickle.dump(self._data, f)
@@ -45,29 +49,40 @@ class Checkpoint:
 
         logger.info(f'Saving checkpoint at: {data_path}')
 
+        # if only a save_path is given, then don't move the data
+        if not self._c.should_stage():
+            return
+
+        compress_dir(
+            input=self._c.get_staging_path(),
+            target=self._c.save_path,
+        )
+
     def remove(self) -> None:
+        # remove checkpoint from both target path
+        # and staging path
         target_path = self._c.save_path
         if os.path.exists(target_path):
             shutil.rmtree(target_path)
+            logger.info(f'Removing checkpoint at: {target_path}')
 
-        logger.info(f'Removing checkpoint at: {target_path}')
+        stage_path = self._c.get_staging_path()
+        if os.path.exists(stage_path):
+            shutil.rmtree(stage_path)
+            logger.info(f'Removing checkpoint at: {stage_path}')
 
-
-    def _load_if_exists(self) -> None:
-        os.makedirs(self._c.save_path, exist_ok=True)
+    def _load_if_exists(self) -> Dict[str, Any] | None:
+        # if the checkpoint exists and is uncompressed, just load it
         data_path = f'{self._c.save_path}/{self._c.data_file}'
-        try:
-            if os.path.exists(data_path):
-                logger.debug(f'Checkpoint data-file found at: {data_path}')
+        if os.path.exists(data_path):
+            logger.debug(f'Checkpoint data-file found at: {data_path}')
+            return read_pickle(data_path, self._c.no_fail)
 
-                try:
-                    with open(data_path, 'rb') as f:
-                        self._data = pickle.load(f)
-                except Exception as e:
-                    if not self._c.no_fail:
-                        raise Exception("Could not load the checkpoint") from e
-        except Exception as e:
-            if not self._c.no_fail:
-                raise Exception(f"Could not find the file at the path: {data_path}") from e
-
-        logger.info(f'Loading from checkpoint at: {self._c.save_path}')
+        # if there is a checkpoint path, but it is compressed
+        if os.path.exists(f'{self._c.save_path}.tar.xz'):
+            logger.info(f'Loading from checkpoint at: {self._c.save_path}.tar.xz')
+            uncompress_dir(
+                input=self._c.save_path,
+                target=self._c.get_staging_path(),
+            )
+            return read_pickle(self._c.get_staging_data_path(), self._c.no_fail)
