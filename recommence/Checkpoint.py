@@ -1,9 +1,13 @@
 import os
 import shutil
 import pickle
+import logging
 from typing import Any, Dict, Callable, TypeVar
 
 T = TypeVar('T')
+
+logger = logging.getLogger('recommence')
+
 class Checkpoint:
     def __init__(self, save_path: str):
         self.save_path: str = save_path
@@ -33,14 +37,21 @@ class Checkpoint:
         with open(self._data_path, 'wb') as f:
             pickle.dump(self._data, f)
 
+        logger.info(f'Saving checkpoint at: {self.save_path}')
+
     def remove(self) -> None:
         if os.path.exists(self.save_path):
             shutil.rmtree(self.save_path)
-        return
+
+        logger.info(f'Removing checkpoint at: {self.save_path}')
 
     def _load_if_exists(self) -> None:
         if os.path.exists(self.save_path):
+            logger.debug(f'Checkpoint directory found at: {self.save_path}')
+
             if os.path.exists(self._data_path):
+                logger.debug(f'Checkpoint data-file found at: {self._data_path}')
+
                 with open(self._data_path, 'rb') as f:
                     self._data = pickle.load(f)
-        return
+        logger.info(f'Loading from checkpoint at: {self.save_path}')
