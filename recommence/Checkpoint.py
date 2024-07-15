@@ -5,11 +5,12 @@ from typing import Any, Dict, Callable, TypeVar
 
 T = TypeVar('T')
 class Checkpoint:
-    def __init__(self, save_path: str):
+    def __init__(self, save_path: str, no_fail: bool = False) -> None:
         self.save_path: str = save_path
         self._data_path: str = f'{save_path}/data.pkl'
         self._data: Dict[str, Any] = {}
 
+        self.no_fail: bool = no_fail  # If true, do not fail if there are issues
         self._load_if_exists()
 
     def __getitem__(self, name: str) -> Any:
@@ -29,9 +30,12 @@ class Checkpoint:
     def save(self) -> None:
         if not os.path.exists(self.save_path):
             os.makedirs(self.save_path)
-
-        with open(self._data_path, 'wb') as f:
-            pickle.dump(self._data, f)
+        try:
+            with open(self._data_path, 'wb') as f:
+                pickle.dump(self._data, f)
+        except Exception as e:
+            if not self.no_fail:
+                raise Exception("Could not save the checkpoint") from e
 
     def remove(self) -> None:
         if os.path.exists(self.save_path):
@@ -40,7 +44,15 @@ class Checkpoint:
 
     def _load_if_exists(self) -> None:
         if os.path.exists(self.save_path):
-            if os.path.exists(self._data_path):
-                with open(self._data_path, 'rb') as f:
-                    self._data = pickle.load(f)
+            try:
+                if os.path.exists(self._data_path):
+                    try:
+                        with open(self._data_path, 'rb') as f:
+                            self._data = pickle.load(f)
+                    except Exception as e:
+                        if not self.no_fail:
+                            raise Exception("Could not load the checkpoint") from e
+            except Exception as e:
+                if not self.no_fail:
+                    raise Exception(f"Could not find the file at the path: {self._data_path}") from e
         return
