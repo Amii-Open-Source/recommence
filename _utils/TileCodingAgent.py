@@ -8,6 +8,8 @@ from numba import njit
 from PyExpUtils.utils.jit import try2jit
 from PyFixedReps.TileCoder import TileCoder, TileCoderConfig
 
+
+
 @njit(cache=True)
 def _update(w, x, a, xp, pi, r, gamma, alpha):
     qsa = w[a][x].sum()
@@ -18,10 +20,10 @@ def _update(w, x, a, xp, pi, r, gamma, alpha):
 
     w[a][x] = w[a][x] + alpha / len(x) * delta
 
+
 @njit(cache=True)
 def value(w, x):
     return w.T[x].sum(axis=0)
-
 
 
 class SparseTileCoder(TileCoder):
@@ -35,7 +37,9 @@ class SparseTileCoder(TileCoder):
 
 @try2jit
 def argsmax(arr: np.ndarray):
-    ties: List[int] = [0 for _ in range(0)]  # <-- trick njit into knowing the type of this empty list
+    ties: List[int] = [
+        0 for _ in range(0)
+    ]  # <-- trick njit into knowing the type of this empty list
     top: float = arr[0]
 
     for i in range(len(arr)):
@@ -58,65 +62,69 @@ def egreedy_probabilities(qs: np.ndarray, actions: int, epsilon: float):
     max_acts = argsmax(qs)
     pi: np.ndarray = np.zeros(actions)
     for a in max_acts:
-        pi[a] = 1. / len(max_acts)
+        pi[a] = 1.0 / len(max_acts)
 
     # compute a uniform random policy
     uniform: np.ndarray = np.ones(actions) / actions
 
     # epsilon greedy is a mixture of greedy + uniform random
-    return (1. - epsilon) * pi + epsilon * uniform
+    return (1.0 - epsilon) * pi + epsilon * uniform
 
-
-
-params= {
-    'representation': {
-    'tiles': 8,
-    'tilings': 8,
-    'input_ranges': [(0, 1), (0, 1), (0, 1), (0, 1)],
-}
-}
-observations= (4,)
 
 class TileCodingAgent(BaseAgent):
     def __init__(self):
-       # super().__init__(observations, actions, params, collector, seed)
+        ####################################################
+        # TODO: bad practice, should later figure out what to do to avoid hard coding these
         self.n_step = 10000
         self.gamma = 0.99
-        self.lag = LagBuffer(self.n_step)
-        self.seed = 10
+        self.seed = 42
         self.rng = np.random.default_rng(self.seed)
         self.actions = 2
-        self.alpha = 0.1
+        self.alpha = 0.01
         self.epsilon = 0.1
-
-        self.rep_params: Dict = params['representation']
-        self.rep = SparseTileCoder(TileCoderConfig(
-            tiles=self.rep_params['tiles'],
-            tilings=self.rep_params['tilings'],
-            dims=observations[0],
-            input_ranges=self.rep_params['input_ranges'],
-        ))
+        self.params = {
+            "representation": {
+                "tiles": 8,
+                "tilings": 8,
+                "input_ranges": [
+                    (-4.8, 4.8),
+                    (-np.inf, np.inf),
+                    (-0.42, 0.42),
+                    (-np.inf, np.inf),
+                ],
+            }
+        }
+        self.observations = (4,)
+        ##########################################################
+        self.lag = LagBuffer(self.n_step)
+        self.rep_params: Dict = self.params["representation"]
+        self.rep = SparseTileCoder(
+            TileCoderConfig(
+                tiles=self.rep_params["tiles"],
+                tilings=self.rep_params["tilings"],
+                dims=self.observations[0],
+                input_ranges=self.rep_params["input_ranges"],
+            )
+        )
 
         self.w = np.zeros((self.actions, self.rep.features()), dtype=np.float64)
 
     def policy(self, obs: np.ndarray) -> np.ndarray:
-            qs = self.values(obs)
-            return egreedy_probabilities(qs, self.actions, self.epsilon)
+        qs = self.values(obs)
+        return egreedy_probabilities(qs, self.actions, self.epsilon)
 
     def values(self, x: np.ndarray):
-            x = np.asarray(x)
-            return value(self.w, x)
+        x = np.asarray(x)
+        return value(self.w, x)
 
     def update(self, x, a, xp, r, gamma):
-            if xp is None:
-                xp = np.zeros_like(x)
-                pi = np.zeros(self.actions)
-            else:
-                pi = self.policy(xp)
+        if xp is None:
+            xp = np.zeros_like(x)
+            pi = np.zeros(self.actions)
+        else:
+            pi = self.policy(xp)
 
-            _update(self.w, x, a, xp, pi, r, gamma, self.alpha)
-
-
+        _update(self.w, x, a, xp, pi, r, gamma, self.alpha)
 
     # ----------------------
     # -- RLGlue interface --
@@ -127,16 +135,20 @@ class TileCodingAgent(BaseAgent):
         x = self.rep.encode(observation)
         pi = self.policy(x)
         a = sample(pi, rng=self.rng)
-        self.lag.add(Timestep(
-            x=x,
-            a=a,
-            r=None,
-            gamma=0,
-            terminal=False,
-        ))
+        self.lag.add(
+            Timestep(
+                x=x,
+                a=a,
+                r=None,
+                gamma=0,
+                terminal=False,
+            )
+        )
         return a
 
-    def step(self, reward: float, observation: np.ndarray | None, extra: Dict[str, Any]):
+    def step(
+        self, reward: float, observation: np.ndarray | None, extra: Dict[str, Any]
+    ):
         a = -1
 
         # sample next action
@@ -147,7 +159,7 @@ class TileCodingAgent(BaseAgent):
             a = sample(pi, rng=self.rng)
 
         # see if the problem specified a discount term
-        gamma = extra.get('gamma', 1.0)
+        gamma = extra.get("gamma", 1.0)
 
         interaction = Timestep(
             x=xp,
@@ -187,5 +199,4 @@ class TileCodingAgent(BaseAgent):
 
         self.lag.flush()
 
-    def cleanup(self):
-        ...
+    def cleanup(self): ...

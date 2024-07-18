@@ -1,10 +1,21 @@
 from recommence.Checkpoint import Checkpoint
-from tests.TileCodingAgent import TileCodingAgent
+from _utils.TileCodingAgent import TileCodingAgent
 from RlGlue import RlGlue, BaseEnvironment
 import gymnasium
 from typing import Any, Dict, Tuple
 
+class stepCollector:
+    def __init__(self):
+        self.total_steps = 0
 
+    def add(self, steps):
+        self.total_steps += steps
+
+    def get(self):
+        return self.total_steps
+
+    def reset(self):
+        self.total_steps = 0
 
 
 class rewardCollector:
@@ -20,9 +31,10 @@ class rewardCollector:
     def reset(self):
         self.total_reward = 0
 
+
 class CartpoleEnvironment(BaseEnvironment):
     def __init__(self, seed: int):
-        self.env = gymnasium.make("CartPole-v1")
+        self.env = gymnasium.make("CartPole-v1", max_episode_steps=1000000)
         self.seed = seed
 
     def start(self):
@@ -34,47 +46,54 @@ class CartpoleEnvironment(BaseEnvironment):
         sp, reward, terminal, truncate, info = self.env.step(action)
         return float(reward), sp, terminal, {}
 
+
 def test_RL_integration(tmp_path):
     chk = Checkpoint(save_path=str(tmp_path))
 
-    agent = chk.register('agent', lambda: TileCodingAgent())
-    env = chk.register('env', lambda: CartpoleEnvironment(seed=10))
-    glue = chk.register('glue', lambda: RlGlue(agent, env))
-    total_rewards = chk.register('reward', lambda: rewardCollector())
-    print("here")
-    glue.total_steps = 0
+    agent = chk.register("agent", lambda: TileCodingAgent())
+    env = chk.register("env", lambda: CartpoleEnvironment(seed=42))
+    glue = chk.register("glue", lambda: RlGlue(agent, env))
 
-    save_interval = 1000  # Number of steps between saving checkpoints
-    stop_step = 5000  # Step at which to stop the learning loop
-    load_checkpoint = False  # Whether to load from the checkpoint or start from scratch
+    chk.register("reward", lambda: rewardCollector())
+    chk.register("steps", lambda: stepCollector())
 
-    if load_checkpoint:
-        chk["reward"].add(total_rewards)
-        glue.total_steps += save_interval  # Skip the steps already performed
+    save_checkpoint_every = 1000
+    restart_loop_at = 5000
+    max_training_loop_steps = 10000
 
     if glue.total_steps == 0:
         glue.start()
 
-    for step in range(glue.total_steps, 10000):
-        print("here")
+    step = 0
+    while step < max_training_loop_steps:
+        # print("at step:", step)
 
         interaction = glue.step()
-        print(interaction.r, interaction.o, interaction.a, interaction.t)
+        # print("info:", interaction.r, interaction.o, interaction.a, interaction.t)
 
-        if step % save_interval == 0:
-            chk.save()  # Save the checkpoint
+        if step % save_checkpoint_every == 0:
+            print("last saved total reward is:", chk["reward"].get())
+            chk.save()
 
-        if step == stop_step:
-            break
+        if step == restart_loop_at:
+            print("reset at step:", step)
+            print("total reward before resetting is:", chk["reward"].get())
+            step = chk["steps"].get()
+            print("have information ready from step:", step)
+
+            print("reloading agent and env")
+            agent = chk["agent"]
+            env = chk["env"]
+            glue = chk["glue"]
 
         if interaction.t:
             agent.cleanup()
             glue.start()
 
-    chk.save()  # Save the final checkpoint
-    print(chk['reward'].get())
+        step += 1
+        chk["reward"].add(interaction.r)
+        chk["steps"].add(1)
 
-
-test_RL_integration("tmp_path")
+    chk.save()
 
 
