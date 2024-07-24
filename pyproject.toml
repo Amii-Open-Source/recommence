@@ -44,4 +44,5 @@ dev = [
     "pyright",
     "commitizen",
     "pre-commit",
+    "PyExpUtils-andnp~=4.0",
 ]
