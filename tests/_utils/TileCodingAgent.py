@@ -73,8 +73,7 @@ def egreedy_probabilities(qs: np.ndarray, actions: int, epsilon: float):
 
 class TileCodingAgent(BaseAgent):
     def __init__(self):
-        ####################################################
-        # TODO: bad practice, should later figure out what to do to avoid hard coding these
+        ##########################################################
         self.n_step = 10000
         self.gamma = 0.99
         self.seed = 42
