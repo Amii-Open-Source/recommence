@@ -45,7 +45,7 @@ dev = [
     "commitizen",
     "pre-commit",
     "PyExpUtils-andnp~=8.1",
-    "replaytables-andnp~=6.0",
+    "replaytables-andnp~=7.0",
     "rlglue-andnp~=1.0",
     "PyFixedReps-andnp~=4.0",
     "gymnasium",
