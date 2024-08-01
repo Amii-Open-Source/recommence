@@ -7,6 +7,7 @@ from typing import Any, Dict, Callable, TypeVar
 from recommence.Config import CheckpointConfig
 from recommence._utils.compress import compress_dir, uncompress_dir
 from recommence._utils.pickle import read_pickle
+from recommence.Reporter import Reporter
 
 T = TypeVar('T')
 
@@ -16,6 +17,7 @@ class Checkpoint:
     def __init__(self, config: CheckpointConfig):
         self._c = config
         self._data: Dict[str, Any] = {}
+        self._reporter = Reporter()
 
         data = self._load_if_exists()
         if data is not None:
@@ -48,6 +50,10 @@ class Checkpoint:
                 raise Exception("Could not save the checkpoint") from e
 
         logger.info(f'Saving checkpoint at: {data_path}')
+
+        self._reporter.report_size("stage:size",data_path)
+        self._reporter.report()
+
 
         # if only a save_path is given, then don't move the data
         if not self._c.should_stage():
