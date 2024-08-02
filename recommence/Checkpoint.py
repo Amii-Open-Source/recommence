@@ -18,6 +18,7 @@ class Checkpoint:
         self._c = config
         self._data: Dict[str, Any] = {}
         self._reporter = Reporter()
+        self.external_data_paths = []
 
         data = self._load_if_exists()
         if data is not None:
@@ -37,6 +38,9 @@ class Checkpoint:
         self._data[name] = builder()
         return self._data[name]
 
+    def register_file(self, path: str) -> None:
+        self.external_data_paths.append(path)
+
     def save(self) -> None:
         os.makedirs(self._c.get_staging_path(), exist_ok=True)
 
@@ -44,6 +48,9 @@ class Checkpoint:
         try:
             with open(data_path, 'wb') as f:
                 pickle.dump(self._data, f)
+                for path in self.external_data_paths:
+                    shutil.copy(path, data_path)
+
 
         except Exception as e:
             if not self._c.no_fail:
@@ -82,6 +89,8 @@ class Checkpoint:
         data_path = f'{self._c.save_path}/{self._c.data_file}'
         if os.path.exists(data_path):
             logger.debug(f'Checkpoint data-file found at: {data_path}')
+            for path in self.external_data_paths:
+                shutil.copy(self._c.get_staging_path() + '/' + os.path.basename(path), path)
             return read_pickle(data_path, self._c.no_fail)
 
         # if there is a checkpoint path, but it is compressed
@@ -91,4 +100,8 @@ class Checkpoint:
                 input=self._c.save_path,
                 target=self._c.get_staging_path(),
             )
+
+            for path in self.external_data_paths:
+                shutil.copy(self._c.get_staging_path() + '/' + os.path.basename(path), path)
+
             return read_pickle(self._c.get_staging_data_path(), self._c.no_fail)
