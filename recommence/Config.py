@@ -5,6 +5,7 @@ class CheckpointConfig:
     save_path: str
     staging_path: str | None = None
     data_file: str = 'data.pkl'
+    save_every_interval: int | None = None
 
     no_fail: bool = False
 
