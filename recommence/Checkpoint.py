@@ -2,6 +2,8 @@ import os
 import shutil
 import pickle
 import logging
+import time
+from threading import Thread
 from typing import Any, Dict, Callable, TypeVar
 
 from recommence.Config import CheckpointConfig
@@ -23,6 +25,9 @@ class Checkpoint:
         data = self._load_if_exists()
         if data is not None:
             self._data = data
+
+        if self._c.save_every_interval is not None:
+            self._save_every()
 
     def __getitem__(self, name: str) -> Any:
         return self._data[name]
@@ -70,6 +75,14 @@ class Checkpoint:
             input=self._c.get_staging_path(),
             target=self._c.save_path,
         )
+
+    def _save_every(self) -> None:
+        def _save_every_thread(self) -> None:
+            while True:
+                self.save()
+                time.sleep(self._c.save_every_interval)
+        thread = Thread(target=_save_every_thread, args=(self,), daemon=True)
+        thread.start()
 
     def remove(self) -> None:
         # remove checkpoint from both target path
