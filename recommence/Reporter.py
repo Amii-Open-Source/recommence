@@ -11,8 +11,8 @@ sample_reporter_config = ReporterConfig(
 )
 
 class Reporter:
-    def __init__(self, config: ReporterConfig = sample_reporter_config):
-        self.metrics: dict = {}
+    def __init__(self, config = sample_reporter_config):
+        self.metrics = {}
         self.reporter_config: ReporterConfig = config
 
 
