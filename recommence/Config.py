@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 import logging
 from typing import Any, List
-import os
 @dataclass
 class CheckpointConfig:
     save_path: str
@@ -41,8 +40,6 @@ class ReporterConfig:
 
     def get_report_path(self) -> Any:
         if 'file' in self.types and self.file_save_path is not None:
-            if not os.path.exists(os.path.dirname(self.file_save_path)):
-                os.makedirs(os.path.dirname(self.file_save_path))
             return self.file_save_path
         elif 'sql' in self.types and self.database_path is not None:
             return self.database_path
