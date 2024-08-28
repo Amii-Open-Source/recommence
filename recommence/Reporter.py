@@ -4,7 +4,7 @@ from recommence.Config import ReporterConfig
 
 
 sample_reporter_config = ReporterConfig(
-    type='file',
+    types=['file'],
     file_save_path="tmp/report.txt",
     database_path=None,
     logger=logging.getLogger()
@@ -23,17 +23,17 @@ class Reporter:
 
 
     def _report(self):
-        if self.reporter_config.type == 'logger':
+        if 'logger' in self.reporter_config.types:
             logger = self.reporter_config.get_logger()
             for stage, value in self.metrics.items():
                 logger.info(f'{stage}: {value}')
 
-        elif self.reporter_config.type == 'file':
+        elif 'file' in self.reporter_config.types:
             with open(self.reporter_config.get_report_path(), 'w') as f:
                 for stage, value in self.metrics.items():
                     f.write(f'{stage}: {value}\n')
 
-        elif self.reporter_config.type == 'sql':
+        elif 'sql' in self.reporter_config.types:
             raise NotImplementedError("SQL reporting is not yet implemented")
 
 

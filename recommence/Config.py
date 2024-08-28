@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import logging
-from typing import Any
+from typing import Any, List
 import os
 @dataclass
 class CheckpointConfig:
@@ -25,28 +25,28 @@ class CheckpointConfig:
 @dataclass
 class ReporterConfig:
     '''
-    config type can be one of the following:
+    config type is a list containing one or more of the following values:
     no_report: No report
     logger:  Through the logger
     file: To user specified file
     sql: To user specified sql database location
     '''
-    type: str
+    types: List[str]
     logger: logging.Logger
     file_save_path: str | None = None
     database_path: str | None = None
 
     def should_report(self) -> bool:
-        return self.type != 'no_report'
+        return "no_report" not in self.types
 
     def get_report_path(self) -> Any:
-        if self.type == 'file' and self.file_save_path is not None:
+        if 'file' in self.types and self.file_save_path is not None:
             if not os.path.exists(os.path.dirname(self.file_save_path)):
                 os.makedirs(os.path.dirname(self.file_save_path))
             return self.file_save_path
-        elif self.type == 'sql' and self.database_path is not None:
+        elif 'sql' in self.types and self.database_path is not None:
             return self.database_path
-        elif self.type == 'logger' and self.logger is not None:
+        elif 'logger' in self.types and self.logger is not None:
             return self.logger
 
     def get_logger(self) -> logging.Logger:
