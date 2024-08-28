@@ -2,11 +2,12 @@ import os
 import logging
 from recommence.Config import ReporterConfig
 from abc import abstractmethod
+import sqlite3
 
 sample_reporter_config = ReporterConfig(
-    types=['file'],
+    types=['file', 'logger', 'sql'],
     file_save_path="tmp/report.txt",
-    database_path=None,
+    database_path="tmp/report.db",
     logger=logging.getLogger()
 )
 
@@ -23,17 +24,15 @@ class Reporter:
 
 
     def _report(self):
-        if 'logger' in self.reporter_config.types:
-            logger = self.reporter_config.get_logger()
-            for stage, value in self.metrics.items():
-                logger.info(f'{stage}: {value}')
-
-        elif 'file' in self.reporter_config.types:
-            FileReporterBackend().prep(self.reporter_config)
-            FileReporterBackend().write(self.reporter_config, self.metrics)
-
-        elif 'sql' in self.reporter_config.types:
-            raise NotImplementedError("SQL reporting is not yet implemented")
+        for type in self.reporter_config.types:
+            if type == 'logger':
+                LoggerReporterBackend().write(self.reporter_config, self.metrics)
+            elif type == 'file':
+                FileReporterBackend().prep(self.reporter_config)
+                FileReporterBackend().write(self.reporter_config, self.metrics)
+            elif type == 'sql':
+                SQLReporterBackend().prep(self.reporter_config)
+                SQLReporterBackend().write(self.reporter_config, self.metrics)
 
 
 
@@ -65,3 +64,35 @@ class FileReporterBackend(ReporterBackend):
       with open(reporter_config.get_report_path(), 'w') as f:
           for stage, value in metrics.items():
               f.write(f'{stage}: {value}\n')
+
+
+class LoggerReporterBackend(ReporterBackend):
+    def prep(self, reporter_config):
+        pass
+
+    def write(self, reporter_config, metrics):
+        logger = reporter_config.get_logger()
+        for stage, value in metrics.items():
+            logger.info(f'{stage}: {value}')
+
+
+class SQLReporterBackend(ReporterBackend):
+    _instance = None #make it singleton
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super().__new__(cls, *args, **kwargs)
+        return cls._instance
+
+    def prep(self, reporter_config):
+        self.conn = sqlite3.connect(reporter_config.database_path)
+        self.cursor = self.conn.cursor()
+        self.cursor.execute("CREATE TABLE IF NOT EXISTS metrics (stage TEXT, value REAL)")
+        print(self.cursor)
+
+    def write(self, reporter_config, metrics):
+        for stage, value in metrics.items():
+            self.cursor.execute("INSERT INTO metrics (stage, value) VALUES (?, ?)", (stage, value))
+        self.conn.commit()
+        self.conn.close()
+
+
