@@ -50,4 +50,6 @@ dev = [
     "PyFixedReps-andnp~=4.0",
     "gymnasium",
     "numba",
+    "jax",
+    "torch",
 ]
