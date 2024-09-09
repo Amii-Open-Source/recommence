@@ -8,7 +8,7 @@ class Agent:
         self._w = torch.tensor(np.ones(25))
 
 
-def test_jax(tmp_path):
+def test_pytorch(tmp_path):
     config = CheckpointConfig(
         save_path=str(tmp_path),
     )
