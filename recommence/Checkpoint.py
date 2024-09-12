@@ -79,8 +79,8 @@ class Checkpoint:
     def _save_every(self) -> None:
         def _save_every_thread(self) -> None:
             while True:
-                self.save()
                 time.sleep(self._c.save_every_interval)
+                self.save()
         thread = Thread(target=_save_every_thread, args=(self,), daemon=True)
         thread.start()
 
