@@ -88,12 +88,15 @@ class Checkpoint:
     def handle_preemption(self) -> None:
         signal.signal(signal.SIGTERM, self._handler)
 
-    def _handler(self) -> None:
+    def _handler(self, signum: int, frame: Any) -> None:
+        logger.info('Received SIGTERM, saving checkpoint and exiting')
         try:
             self.save()
         except Exception as e:
-            print(e)
+            logger.error(f'Failed to save checkpoint: {e}')
+        logger.info('Checkpoint saved gracefully, exiting')
         exit()
+
 
 
     def remove(self) -> None:
