@@ -3,6 +3,7 @@ import shutil
 import pickle
 import logging
 import time
+import signal
 from threading import Thread
 from typing import Any, Dict, Callable, TypeVar
 
@@ -83,6 +84,17 @@ class Checkpoint:
                 self.save()
         thread = Thread(target=_save_every_thread, args=(self,), daemon=True)
         thread.start()
+
+    def handle_preemption(self) -> None:
+        signal.signal(signal.SIGTERM, self._handler)
+
+    def _handler(self) -> None:
+        try:
+            self.save()
+        except Exception as e:
+            print(e)
+        exit()
+
 
     def remove(self) -> None:
         # remove checkpoint from both target path
