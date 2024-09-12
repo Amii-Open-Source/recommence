@@ -4,8 +4,7 @@ import pickle
 import logging
 import time
 import signal
-from threading import Thread
-from typing import Any, Dict, Callable, TypeVar
+from typing import Any, Dict, Callable, TypeVar, Optional
 
 from recommence.Config import CheckpointConfig
 from recommence._utils.compress import compress_dir, uncompress_dir
@@ -22,13 +21,12 @@ class Checkpoint:
         self._data: Dict[str, Any] = {}
         self._reporter = Reporter()
         self.external_data_paths = []
+        self._last_save: Optional[float] = None
 
         data = self._load_if_exists()
         if data is not None:
             self._data = data
 
-        if self._c.save_every_interval is not None:
-            self._save_every()
 
     def __getitem__(self, name: str) -> Any:
         return self._data[name]
@@ -77,13 +75,16 @@ class Checkpoint:
             target=self._c.save_path,
         )
 
-    def _save_every(self) -> None:
-        def _save_every_thread(self) -> None:
-            while True:
-                time.sleep(self._c.save_every_interval)
-                self.save()
-        thread = Thread(target=_save_every_thread, args=(self,), daemon=True)
-        thread.start()
+    def maybe_save(self):
+        if self._c.save_every_interval is None or self._c.save_every_interval < 0:
+            return
+        if self._last_save is None:
+            self._last_save = time.time()
+
+        if time.time() - self._last_save > self._c.save_every_interval:
+            print("saving at maybe_save")
+            self.save()
+            self._last_save = time.time()
 
     def handle_preemption(self) -> None:
         signal.signal(signal.SIGTERM, self._handler)
