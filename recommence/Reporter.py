@@ -87,7 +87,6 @@ class SQLReporterBackend(ReporterBackend):
         self.conn = sqlite3.connect(reporter_config.database_path)
         self.cursor = self.conn.cursor()
         self.cursor.execute("CREATE TABLE IF NOT EXISTS metrics (stage TEXT, value REAL)")
-        print(self.cursor)
 
     def write(self, reporter_config, metrics):
         for stage, value in metrics.items():
