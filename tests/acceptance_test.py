@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import shutil
 from recommence.Checkpoint import Checkpoint, CheckpointConfig
@@ -56,3 +57,33 @@ def test_checkpoint2(tmp_path):
     assert original_agent.steps == loaded_agent.steps
 
     chk.remove()
+
+def test_checkpoint3(tmp_path): #test if maybe_save works
+    config = CheckpointConfig(
+        save_path=str(tmp_path),
+        save_every_interval=1,
+    )
+    chk = Checkpoint(config)
+
+    chk['agent'] = lambda: FakeAgent()
+    original_agent = chk['agent']
+
+
+    assert isinstance(original_agent, FakeAgent)
+
+    chk.maybe_save()
+    time.sleep(5)
+    original_agent.weights[0] = 1
+    chk.maybe_save()
+    del chk
+
+    chk = Checkpoint(config)
+
+    loaded_agent = chk['agent']
+
+    assert id(original_agent) != id(loaded_agent)
+    assert np.all(original_agent.weights == loaded_agent.weights)
+    assert original_agent.steps == loaded_agent.steps
+
+    chk.remove()
+
