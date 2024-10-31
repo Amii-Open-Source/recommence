@@ -4,7 +4,7 @@ import pickle
 import logging
 import time
 import signal
-from typing import Any, Dict, Callable, TypeVar, Optional
+from typing import Any, Dict, Callable, TypeVar, Optional, Union
 
 from recommence.Config import CheckpointConfig
 from recommence._utils.compress import compress_dir, uncompress_dir
@@ -31,8 +31,11 @@ class Checkpoint:
     def __getitem__(self, name: str) -> Any:
         return self._data[name]
 
-    def __setitem__(self, name: str, value: Callable[[], T]) -> T:
-        self._data[name] = value()
+    def __setitem__(self, name: str, value: Union[Callable[[], T], T]) -> T:
+        if callable(value):
+            self._data[name] = value()
+        else:
+            self._data[name] = value
         return self._data[name]
 
     def register(self, name: str, builder: Callable[[], T]) -> T:
@@ -40,6 +43,13 @@ class Checkpoint:
             return self._data[name]
 
         self._data[name] = builder()
+        return self._data[name]
+
+    def register_value(self, name: str, initial_value: T) -> T:
+        if name in self._data:
+            return self._data[name]
+
+        self._data[name] = initial_value
         return self._data[name]
 
     def register_file(self, path: str) -> None:
