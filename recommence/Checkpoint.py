@@ -4,7 +4,7 @@ import pickle
 import logging
 import time
 import signal
-from typing import Any, Dict, Callable, TypeVar, Optional, Union
+from typing import Any, Dict, Callable, TypeVar
 
 from recommence.Config import CheckpointConfig
 from recommence._utils.compress import compress_dir, uncompress_dir
@@ -21,7 +21,7 @@ class Checkpoint:
         self._data: Dict[str, Any] = {}
         self._reporter = Reporter()
         self.external_data_paths = []
-        self._last_save: Optional[float] = None
+        self._last_save: float | None = None
 
         data = self._load_if_exists()
         if data is not None:
@@ -31,7 +31,7 @@ class Checkpoint:
     def __getitem__(self, name: str) -> Any:
         return self._data[name]
 
-    def __setitem__(self, name: str, value: Union[Callable[[], T], T]) -> T:
+    def __setitem__(self, name: str, value: T | Callable[[], T]) -> T:
         if callable(value):
             self._data[name] = value()
         else:
