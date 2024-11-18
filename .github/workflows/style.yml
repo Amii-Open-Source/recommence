@@ -10,21 +10,21 @@ jobs:
     steps:
       # setup the repository
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          cache: 'pip'
+      - uses: actions/setup-python@v5
+
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
 
       - run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install uv
+          uv venv
           uv pip compile --extra=dev pyproject.toml -o requirements.txt
           uv pip sync requirements.txt
 
       - run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       # linting
-      - uses: chartboost/ruff-action@v1
+      - uses: astral-sh/ruff-action@v1
 
       # type checking
       - uses: jakebailey/pyright-action@v2
