@@ -24,7 +24,7 @@ authors = [
     {name = "Andy Patterson", email = "andrew.patterson@amii.ca"},
 ]
 dependencies = [
-    "numpy>=1.20,<=2.1.3",
+    "numpy>=1.20,<=2.2.1",
 ]
 requires-python = ">=3.10,<3.13"
 readme = "README.md"
@@ -45,7 +45,7 @@ dev = [
     "commitizen",
     "pre-commit",
     "PyExpUtils-andnp~=8.1",
-    "replaytables-andnp~=7.0",
+    "replaytables-andnp~=5.9",
     "rlglue-andnp~=1.0",
     "PyFixedReps-andnp~=4.0",
     "gymnasium",
